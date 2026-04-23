@@ -1,0 +1,10 @@
+# Base de datos
+data/*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# VS Code
+.vscode/
