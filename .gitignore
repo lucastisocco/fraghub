@@ -1,5 +1,6 @@
 # Base de datos
 data/*.db
+data/*.html
 
 # Python
 __pycache__/
