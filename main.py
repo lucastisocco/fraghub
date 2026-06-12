@@ -1,9 +1,10 @@
 # main.py
 
 import logging
-from extractor.prosettings_scraper import scrape_prosettings
-from transformer.transform_prosettings import transformar
-from loader.sqlite_loader import cargar
+from extractors.prosettings_scraper import scrape_prosettings
+from extractors.hltv_scraper import scrape_hltv_local
+from transformers.transform_prosettings import transformar
+from loaders.sqlite_loader import cargar, cargar_hltv
 
 logging.basicConfig(
     level=logging.INFO,
@@ -11,16 +12,16 @@ logging.basicConfig(
 )
 
 def main():
-    # Extract
-    datos_crudos = scrape_prosettings()
-    if not datos_crudos:
-        return
+    # ── ProSettings ───────────────────────────────────────────────────────────
+    datos_ps = scrape_prosettings()
+    if datos_ps:
+        tablas = transformar(datos_ps)
+        cargar(tablas)
 
-    # Transform
-    tablas = transformar(datos_crudos)
-
-    # Load
-    cargar(tablas)
+    # ── HLTV (HTML local) ─────────────────────────────────────────────────────
+    datos_hltv = scrape_hltv_local()
+    if datos_hltv:
+        cargar_hltv(datos_hltv, scraped_date="2026-05-20")
 
 if __name__ == "__main__":
     main()

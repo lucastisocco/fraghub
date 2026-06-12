@@ -30,7 +30,7 @@ def _parsear_fila(tr) -> dict | None:
         country    = flag_img["title"] if flag_img else None
         player_a   = player_td.find("a")
         player_name = player_a.get_text(strip=True) if player_a else None
-        player_url  = player_a["href"].split("?")[0] if player_a else None  # sin query params
+        player_url = player_a["href"].split("?")[0] if player_a else None
 
         if not player_name:
             return None
@@ -39,7 +39,7 @@ def _parsear_fila(tr) -> dict | None:
         team_td   = tr.find("td", class_="teamCol")
         team_name = team_td.get("data-sort") if team_td else None
         team_a    = team_td.find("a") if team_td else None
-        team_url  = team_a["href"].split("?")[0] if team_a else None
+        team_url = team_a["href"].split("?")[0] if team_a else None
 
         # Stats numéricas — en orden de aparición en el HTML
         stats_tds = tr.find_all("td", class_="statsDetail")
@@ -57,10 +57,10 @@ def _parsear_fila(tr) -> dict | None:
 
         return {
             "player_name": player_name,
-            "player_url":  f"https://www.hltv.org{player_url}" if player_url else None,
+            "player_url": player_url,
             "country":     country,
             "team_name":   team_name,
-            "team_url":    f"https://www.hltv.org{team_url}" if team_url else None,
+            "team_url":   team_url,
             "maps":        maps,
             "rounds":      rounds,
             "kd_diff":     kd_diff,

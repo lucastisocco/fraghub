@@ -4,6 +4,7 @@ import sqlite3
 import logging
 import pandas as pd
 from pathlib import Path
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,20 @@ def _crear_schema(conn: sqlite3.Connection) -> None:
             chair_url       TEXT,
             FOREIGN KEY (player_url) REFERENCES players(player_url)
         );
+
+        CREATE TABLE IF NOT EXISTS hltv_stats (
+            player_name  TEXT PRIMARY KEY,
+            country      TEXT,
+            team_name    TEXT,
+            team_url     TEXT,
+            player_url   TEXT,
+            maps         INTEGER,
+            rounds       INTEGER,
+            kd_diff      INTEGER,
+            kd           REAL,
+            rating       REAL,
+            scraped_date TEXT   -- fecha en que se descargó el HTML manualmente
+        );
     """)
     conn.commit()
     logger.info("Schema verificado/creado")
@@ -122,3 +137,53 @@ def cargar(tablas: dict[str, pd.DataFrame]) -> None:
                 _cargar_tabla(conn, tablas[nombre], nombre)
 
     logger.info(f"Carga finalizada → {DB_PATH}")
+
+def cargar_hltv(datos: list[dict], scraped_date: str | None = None) -> None:
+    """
+    Carga los datos de HLTV en la tabla hltv_stats.
+    scraped_date: fecha del HTML descargado, formato YYYY-MM-DD.
+                  Si no se pasa, usa la fecha de hoy.
+    """
+    if not datos:
+        logger.warning("Lista vacía, nada que cargar en hltv_stats")
+        return
+
+    fecha = scraped_date or date.today().isoformat()
+
+    # Agregar fecha y convertir tipos numéricos
+    registros = []
+    for d in datos:
+        registros.append({
+            "player_name":  d.get("player_name"),
+            "country":      d.get("country"),
+            "team_name":    d.get("team_name"),
+            "team_url":     d.get("team_url"),
+            "player_url":   d.get("player_url"),
+            "maps":         _a_int(d.get("maps")),
+            "rounds":       _a_int(d.get("rounds")),
+            "kd_diff":      _a_int(d.get("kd_diff")),
+            "kd":           _a_float(d.get("kd")),
+            "rating":       _a_float(d.get("rating")),
+            "scraped_date": fecha,
+        })
+
+    with _get_conn() as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        _crear_schema(conn)
+        _cargar_tabla(conn, pd.DataFrame(registros), "hltv_stats")
+
+    logger.info(f"Carga HLTV finalizada → {len(registros)} jugadores, fecha: {fecha}")
+
+
+def _a_int(valor) -> int | None:
+    try:
+        return int(valor) if valor is not None else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _a_float(valor) -> float | None:
+    try:
+        return float(valor) if valor is not None else None
+    except (ValueError, TypeError):
+        return None
