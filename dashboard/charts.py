@@ -8,8 +8,6 @@ from pathlib import Path
 
 DB_PATH = Path("data/cs2.db")
 
-# ── Estilo ────────────────────────────────────────────────────────────────────
-
 plt.rcParams.update({
     "figure.facecolor":  "#0a0c0f",
     "axes.facecolor":    "#111418",
@@ -31,15 +29,8 @@ ACCENT  = "#e8ff47"
 ACCENT2 = "#47c8ff"
 
 
-# ── Data ──────────────────────────────────────────────────────────────────────
-
 def _cargar(scope: str = "all") -> pd.DataFrame:
-    """
-    scope = "all"  → todos los jugadores de ProSettings
-    scope = "hltv" → solo los 91 del ranking HLTV
-    """
     conn = sqlite3.connect(DB_PATH)
-
     if scope == "hltv":
         df = pd.read_sql("""
             SELECT s.dpi, s.edpi, s.aspect_ratio, s.resolution, s.scaling_mode
@@ -53,12 +44,9 @@ def _cargar(scope: str = "all") -> pd.DataFrame:
             FROM players p
             JOIN settings s ON p.player_url = s.player_url
         """, conn)
-
     conn.close()
     return df
 
-
-# ── Gráficos ──────────────────────────────────────────────────────────────────
 
 def grafico_dpi(ax, df: pd.DataFrame) -> None:
     data = (
@@ -86,7 +74,6 @@ def grafico_edpi(ax, df: pd.DataFrame) -> None:
     ax.set_ylabel("Jugadores")
     ax.tick_params(axis="x", rotation=45)
 
-    # Valor encima de cada barra
     for x, val in zip(range(len(data)), data.values):
         ax.text(x, val + 0.2, str(val), ha="center", fontsize=8, color="#94a3b8")
 
@@ -98,7 +85,6 @@ def grafico_aspect_ratio(ax, df: pd.DataFrame) -> None:
     ax.set_title("Relaciones de aspecto")
     ax.set_xlabel("Jugadores")
 
-    # Labels al final de cada barra
     for bar, val in zip(bars, data.values[::-1]):
         ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height() / 2,
                 str(val), va="center", fontsize=8, color="#94a3b8")
@@ -134,14 +120,9 @@ def grafico_scaling(ax, df: pd.DataFrame) -> None:
     ax.set_title("Scaling mode")
 
 
-# ── Render ────────────────────────────────────────────────────────────────────
-
 def mostrar_graficos(scope: str = "all") -> None:
-    """
-    scope: "all" | "hltv"
-    """
     df = _cargar(scope)
-    label = "Top 91 HLTV" if scope == "hltv" else f"Todos ({len(df)} jugadores)"
+    label = "Top HLTV" if scope == "hltv" else f"Todos ({len(df)} jugadores)"
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 9))
     fig.suptitle(f"CS2 Pro Settings — {label}",
@@ -154,22 +135,21 @@ def mostrar_graficos(scope: str = "all") -> None:
     grafico_resoluciones(axes[1, 0], df)
     grafico_scaling(axes[1, 1], df)
 
-    # Último panel: stats resumen
     ax_info = axes[1, 2]
     ax_info.axis("off")
     stats = [
-        ("Jugadores",    str(len(df))),
-        ("DPI mediano",  str(int(df['dpi'].median())) if df['dpi'].notna().any() else "—"),
-        ("eDPI mediano", str(int(df['edpi'].median())) if df['edpi'].notna().any() else "—"),
-        ("Res. top",     df['resolution'].value_counts().index[0] if df['resolution'].notna().any() else "—"),
-        ("AR top",       df['aspect_ratio'].value_counts().index[0] if df['aspect_ratio'].notna().any() else "—"),
-        ("Scaling top",  df['scaling_mode'].value_counts().index[0] if df['scaling_mode'].notna().any() else "—"),
+        ("Jugadores",   str(len(df))),
+        ("DPI mediano", str(int(df['dpi'].median())) if df['dpi'].notna().any() else "—"),
+        ("eDPI medio",  str(int(df['edpi'].mean()))  if df['edpi'].notna().any() else "—"),
+        ("Res. top",    df['resolution'].value_counts().index[0] if df['resolution'].notna().any() else "—"),
+        ("AR top",      df['aspect_ratio'].value_counts().index[0] if df['aspect_ratio'].notna().any() else "—"),
+        ("Scaling top", df['scaling_mode'].value_counts().index[0] if df['scaling_mode'].notna().any() else "—"),
     ]
     for i, (label_s, val) in enumerate(stats):
         y = 0.85 - i * 0.14
         ax_info.text(0.05, y, label_s.upper(),
-             fontsize=7, color="#64748b", transform=ax_info.transAxes,
-             fontweight="bold")
+                     fontsize=7, color="#64748b", transform=ax_info.transAxes,
+                     fontweight="bold")
         ax_info.text(0.05, y - 0.06, val,
                      fontsize=13, color=ACCENT, transform=ax_info.transAxes,
                      fontweight="bold", fontfamily="monospace")
@@ -178,11 +158,9 @@ def mostrar_graficos(scope: str = "all") -> None:
     plt.show()
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     print("1 — Todos los jugadores (ProSettings)")
-    print("2 — Top 91 HLTV")
+    print("2 — Top HLTV")
     opcion = input("Elegí una opción: ").strip()
     scope = "hltv" if opcion == "2" else "all"
     mostrar_graficos(scope)

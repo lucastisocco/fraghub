@@ -4,7 +4,7 @@ Pipeline ETL + visualizaciones para analizar configuraciones y estadísticas de 
 
 ## ¿Qué hace?
 
-Extrae datos de [ProSettings](https://prosettings.net/lists/cs2/) — mouse, DPI, sensitivity, monitor, resolución y más — de 800+ jugadores profesionales, y los cruza con el ranking de rating de [HLTV](https://www.hltv.org/stats) (top 91 jugadores). Todo se transforma y carga en una base de datos SQLite lista para análisis.
+Extrae datos de [ProSettings](https://prosettings.net/lists/cs2/) — mouse, DPI, sensitivity, monitor, resolución y más — de 800+ jugadores profesionales, y los cruza con el ranking de rating de [HLTV](https://www.hltv.org/stats) (top 100 jugadores). Todo se transforma y carga en una base de datos SQLite lista para análisis.
 
 ## Stack
 
@@ -13,7 +13,7 @@ Extrae datos de [ProSettings](https://prosettings.net/lists/cs2/) — mouse, DPI
 | Extracción | `requests` + `BeautifulSoup` |
 | Transformación | `pandas` |
 | Carga | `SQLite3` |
-| Visualización | `matplotlib` |
+| Visualización | `matplotlib` + `Streamlit` |
 
 ## Estructura
 
@@ -27,7 +27,8 @@ fraghub/
 ├── loader/
 │   └── sqlite_loader.py         # carga a SQLite
 ├── dashboard/
-│   └── charts.py                # gráficos con matplotlib
+│   ├── charts.py                # gráficos estáticos con matplotlib
+│   └── app.py                   # dashboard interactivo con Streamlit
 ├── data/
 │   ├── cs2.db                   # base de datos generada (no versionada)
 │   └── HLTV.html                # HTML descargado manualmente de HLTV
@@ -39,7 +40,7 @@ fraghub/
 ```bash
 git clone https://github.com/lucastisocco/fraghub.git
 cd fraghub
-pip install requests beautifulsoup4 pandas matplotlib
+pip install requests beautifulsoup4 pandas matplotlib streamlit plotly
 ```
 
 ## Uso
@@ -55,11 +56,11 @@ El pipeline tarda ~5 segundos. Al finalizar, `data/cs2.db` contiene cuatro tabla
 - **`players`** — nombre, país, equipo, rol
 - **`settings`** — DPI, sensitivity, eDPI, resolución, aspect ratio
 - **`gear`** — mouse, monitor, GPU, mousepad, teclado, headset, silla
-- **`hltv_stats`** — rating, K/D, K/D diff, mapas y rondas jugadas (top 91 HLTV)
+- **`hltv_stats`** — rating, K/D, K/D diff, mapas y rondas jugadas (top 100 HLTV)
 
-> **Nota sobre HLTV:** dado que HLTV usa Cloudflare y bloquea el scraping automático, los datos se obtienen descargando manualmente el HTML de la página de estadísticas de jugadores y guardándolo en `data/HLTV.html`.
+> **Nota sobre HLTV:** dado que HLTV usa Cloudflare y bloquea el scraping automático, los datos se obtienen descargando manualmente el HTML de [esta página](https://www.hltv.org/stats/players?startDate=2024-01-01&endDate=2024-12-31&rankingFilter=Top50) y guardándolo en `data/HLTV.html`.
 
-### 2. Visualizaciones
+### 2. Gráficos estáticos
 
 ```bash
 python dashboard/charts.py
@@ -67,8 +68,8 @@ python dashboard/charts.py
 
 Te pide elegir el alcance de los datos:
 
-- **Todos los jugadores** (ProSettings completo, ~888 jugadores)
-- **Top 91 HLTV** (solo jugadores con mejor rating)
+- **Todos los jugadores** (ProSettings completo, ~900 jugadores)
+- **Top HLTV** (solo jugadores con mejor rating)
 
 Y genera un panel con 5 gráficos + resumen de estadísticas:
 
@@ -77,6 +78,14 @@ Y genera un panel con 5 gráficos + resumen de estadísticas:
 - Relaciones de aspecto
 - Resoluciones más usadas
 - Scaling mode
+
+### 3. Dashboard interactivo
+
+```bash
+python -m streamlit run dashboard/app.py
+```
+
+Incluye ranking de jugadores con link a ProSettings, filtro por scope y los mismos gráficos en formato interactivo.
 
 ## Schema
 
@@ -95,5 +104,5 @@ El join entre `hltv_stats` y `players` se hace por nombre normalizado (`LOWER()`
 - [x] Transformación y carga SQLite
 - [x] Integración HLTV (HTML local)
 - [x] Visualizaciones con matplotlib
-- [ ] Frontend web (en evaluación)
+- [x] Dashboard interactivo con Streamlit
 - [ ] Actualización automática programada

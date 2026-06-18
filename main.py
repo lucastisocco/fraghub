@@ -21,7 +21,7 @@ def main():
     # ── HLTV (HTML local) ─────────────────────────────────────────────────────
     datos_hltv = scrape_hltv_local()
     if datos_hltv:
-        cargar_hltv(datos_hltv, scraped_date="2026-05-20")
+        cargar_hltv(datos_hltv, scraped_date="2026-06-18")
 
 if __name__ == "__main__":
     main()

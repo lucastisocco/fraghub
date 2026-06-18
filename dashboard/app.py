@@ -2,7 +2,6 @@
 
 import sqlite3
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from pathlib import Path
@@ -17,6 +16,18 @@ st.set_page_config(
 )
 
 DB_PATH = Path("data/cs2.db")
+
+ACCENT  = "#e8ff47"
+ACCENT2 = "#47c8ff"
+
+PLOTLY_THEME = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(family="Barlow, sans-serif", color="#94a3b8", size=12),
+    margin=dict(t=32, b=32, l=16, r=16),
+    xaxis=dict(gridcolor="#1a2030", linecolor="#1f2530", tickcolor="#1f2530"),
+    yaxis=dict(gridcolor="#1a2030", linecolor="#1f2530", tickcolor="#1f2530"),
+)
 
 # ── Theme ─────────────────────────────────────────────────────────────────────
 
@@ -41,8 +52,6 @@ html, body, [data-testid="stApp"] {
     color: var(--text) !important;
     font-family: 'Barlow', sans-serif;
 }
-
-/* Header */
 .fh-header {
     display: flex;
     align-items: baseline;
@@ -66,8 +75,6 @@ html, body, [data-testid="stApp"] {
     letter-spacing: 2px;
     text-transform: uppercase;
 }
-
-/* Tabs */
 [data-testid="stTabs"] button {
     font-family: 'Barlow Condensed', sans-serif !important;
     font-size: 1rem !important;
@@ -82,8 +89,6 @@ html, body, [data-testid="stApp"] {
     color: var(--accent) !important;
     border-bottom: 2px solid var(--accent) !important;
 }
-
-/* Metric cards */
 .metric-row {
     display: flex;
     gap: 12px;
@@ -110,16 +115,12 @@ html, body, [data-testid="stApp"] {
     color: var(--accent);
     line-height: 1;
 }
-
-/* Ranking table */
 .rank-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.88rem;
 }
-.rank-table thead tr {
-    border-bottom: 1px solid var(--border);
-}
+.rank-table thead tr { border-bottom: 1px solid var(--border); }
 .rank-table thead th {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 0.72rem;
@@ -134,65 +135,23 @@ html, body, [data-testid="stApp"] {
     border-bottom: 1px solid #151920;
     transition: background 0.15s;
 }
-.rank-table tbody tr:hover {
-    background: var(--surface2);
-}
-.rank-table td {
-    padding: 10px 12px;
-    color: var(--text);
-}
-.rank-num {
-    color: var(--muted);
-    font-size: 0.8rem;
-    width: 36px;
-}
+.rank-table tbody tr:hover { background: var(--surface2); }
+.rank-table td { padding: 10px 12px; color: var(--text); }
+.rank-num { color: var(--muted); font-size: 0.8rem; width: 36px; }
 .rank-name {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
-.rank-name a {
-    color: var(--text);
-    text-decoration: none;
-}
-.rank-name a:hover {
-    color: var(--accent);
-}
-.rank-team {
-    color: var(--muted);
-    font-size: 0.82rem;
-}
+.rank-name a { color: var(--text); text-decoration: none; }
+.rank-name a:hover { color: var(--accent); }
+.rank-team { color: var(--muted); font-size: 0.82rem; }
 .rating-high { color: var(--accent); font-weight: 600; }
 .rating-mid  { color: var(--accent2); }
 .rating-low  { color: var(--muted); }
 .kd-pos { color: #4ade80; }
 .kd-neg { color: var(--danger); }
-
-/* Filter toggle */
-.stRadio > div {
-    display: flex;
-    gap: 8px;
-    flex-direction: row !important;
-}
-.stRadio label {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
-    padding: 6px 16px !important;
-    cursor: pointer;
-    font-size: 0.82rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--muted) !important;
-    transition: all 0.2s;
-}
-.stRadio label:has(input:checked) {
-    border-color: var(--accent) !important;
-    color: var(--accent) !important;
-}
-
-/* Section headers */
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1.1rem;
@@ -204,8 +163,6 @@ html, body, [data-testid="stApp"] {
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
 }
-
-/* Hide streamlit chrome */
 #MainMenu, footer, header { visibility: hidden; }
 [data-testid="stDecoration"] { display: none; }
 </style>
@@ -217,7 +174,6 @@ html, body, [data-testid="stApp"] {
 def cargar_datos():
     conn = sqlite3.connect(DB_PATH)
 
-    # Ranking HLTV con datos de ProSettings
     ranking = pd.read_sql("""
         SELECT
             ROW_NUMBER() OVER (ORDER BY h.rating DESC) AS rank,
@@ -240,13 +196,12 @@ def cargar_datos():
             g.mouse,
             g.monitor
         FROM hltv_stats h
-        LEFT JOIN players p   ON LOWER(h.player_name) = LOWER(p.player_name)
-        LEFT JOIN settings s  ON p.player_url = s.player_url
-        LEFT JOIN gear g      ON p.player_url = g.player_url
+        LEFT JOIN players p  ON LOWER(h.player_name) = LOWER(p.player_name)
+        LEFT JOIN settings s ON p.player_url = s.player_url
+        LEFT JOIN gear g     ON p.player_url = g.player_url
         ORDER BY h.rating DESC
     """, conn)
 
-    # Todos los jugadores de ProSettings
     todos = pd.read_sql("""
         SELECT
             p.player_name,
@@ -267,7 +222,7 @@ def cargar_datos():
 
 
 ranking_df, todos_df = cargar_datos()
-hltv_settings = ranking_df.dropna(subset=["dpi"])  # solo los que tienen datos de PS
+hltv_settings = ranking_df.dropna(subset=["dpi"])
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
@@ -281,7 +236,7 @@ st.markdown("""
 # ── Metrics ───────────────────────────────────────────────────────────────────
 
 avg_dpi  = todos_df["dpi"].median()
-avg_edpi = todos_df["edpi"].median()
+avg_edpi = todos_df["edpi"].mean()
 top_res  = todos_df["resolution"].value_counts().index[0] if not todos_df["resolution"].isna().all() else "—"
 top_ar   = todos_df["aspect_ratio"].value_counts().index[0] if not todos_df["aspect_ratio"].isna().all() else "—"
 
@@ -296,7 +251,7 @@ st.markdown(f"""
         <div class="metric-value">{int(avg_dpi) if pd.notna(avg_dpi) else '—'}</div>
     </div>
     <div class="metric-card">
-        <div class="metric-label">eDPI mediano</div>
+        <div class="metric-label">eDPI medio</div>
         <div class="metric-value">{int(avg_edpi) if pd.notna(avg_edpi) else '—'}</div>
     </div>
     <div class="metric-card">
@@ -330,16 +285,16 @@ with tab_ranking:
 
     rows = ""
     for _, row in ranking_df.iterrows():
-        url   = row["player_url"] or "#"
-        ps_link = f'<a href="{url}" target="_blank">{row["player_name"]}</a>' if url != "#" else row["player_name"]
-        r     = float(row["rating"]) if pd.notna(row["rating"]) else 0
-        kd    = float(row["kd"]) if pd.notna(row["kd"]) else None
-        diff  = int(row["kd_diff"]) if pd.notna(row["kd_diff"]) else None
+        url      = row["player_url"] or "#"
+        ps_link  = f'<a href="{url}" target="_blank">{row["player_name"]}</a>' if url != "#" else row["player_name"]
+        r        = float(row["rating"]) if pd.notna(row["rating"]) else 0
+        kd       = float(row["kd"]) if pd.notna(row["kd"]) else None
+        diff     = int(row["kd_diff"]) if pd.notna(row["kd_diff"]) else None
         diff_str = f'+{diff}' if diff and diff > 0 else str(diff) if diff else "—"
 
-        dpi_str  = f'{int(row["dpi"])}' if pd.notna(row.get("dpi")) else '<span style="color:#2a3040">—</span>'
-        edpi_str = f'{int(row["edpi"])}' if pd.notna(row.get("edpi")) else '<span style="color:#2a3040">—</span>'
-        res_str  = row["resolution"] if pd.notna(row.get("resolution")) else '<span style="color:#2a3040">—</span>'
+        dpi_str  = f'{int(row["dpi"])}'  if pd.notna(row.get("dpi"))        else '<span style="color:#2a3040">—</span>'
+        edpi_str = f'{int(row["edpi"])}' if pd.notna(row.get("edpi"))       else '<span style="color:#2a3040">—</span>'
+        res_str  = row["resolution"]     if pd.notna(row.get("resolution")) else '<span style="color:#2a3040">—</span>'
 
         rows += f"""
         <tr>
@@ -357,77 +312,49 @@ with tab_ranking:
         </tr>
         """
 
-    st.markdown(f"""
-    <table class="rank-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Player</th>
-          <th>Team</th>
-          <th>Country</th>
-          <th>Maps</th>
-          <th>K/D</th>
-          <th>K/D Diff</th>
-          <th>Rating</th>
-          <th>DPI</th>
-          <th>eDPI</th>
-          <th>Resolution</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows}
-      </tbody>
-    </table>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Player</th><th>Team</th><th>Country</th>
+              <th>Maps</th><th>K/D</th><th>K/D Diff</th><th>Rating</th>
+              <th>DPI</th><th>eDPI</th><th>Resolution</th>
+            </tr>
+          </thead>
+          <tbody>{rows}</tbody>
+        </table>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 2 — SETTINGS & GEAR
 # ════════════════════════════════════════════════════════════════════════════
 
-PLOTLY_THEME = dict(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(family="Barlow, sans-serif", color="#94a3b8", size=12),
-    margin=dict(t=32, b=32, l=16, r=16),
-    xaxis=dict(gridcolor="#1a2030", linecolor="#1f2530", tickcolor="#1f2530"),
-    yaxis=dict(gridcolor="#1a2030", linecolor="#1f2530", tickcolor="#1f2530"),
-)
-
-ACCENT  = "#e8ff47"
-ACCENT2 = "#47c8ff"
-
 with tab_stats:
 
-    # Filter toggle
     st.markdown('<div class="section-title">Filtro de jugadores</div>', unsafe_allow_html=True)
     scope = st.radio(
-        "",
-        ["Todos los jugadores (ProSettings)", "Top 91 HLTV"],
+        "Filtro",
+        ["Todos los jugadores (ProSettings)", "Top HLTV"],
         horizontal=True,
         label_visibility="collapsed",
     )
 
-    df_plot = hltv_settings if scope == "Top 91 HLTV" else todos_df
-    n = len(df_plot)
-    st.caption(f"{n} jugadores en la selección actual")
-
+    df_plot = hltv_settings if scope == "Top HLTV" else todos_df
+    st.caption(f"{len(df_plot)} jugadores en la selección actual")
     st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
-    # ── DPI ──────────────────────────────────────────────────────────────────
     with col1:
         st.markdown('<div class="section-title">DPI más usados</div>', unsafe_allow_html=True)
         dpi_data = (
-            df_plot["dpi"]
-            .dropna()
-            .astype(int)
-            .value_counts()
-            .sort_index()
-            .reset_index()
+            df_plot["dpi"].dropna().astype(int)
+            .value_counts().sort_index().reset_index()
         )
         dpi_data.columns = ["DPI", "Jugadores"]
-
         fig_dpi = go.Figure(go.Bar(
             x=dpi_data["DPI"].astype(str),
             y=dpi_data["Jugadores"],
@@ -436,37 +363,34 @@ with tab_stats:
             hovertemplate="<b>%{x} DPI</b><br>%{y} jugadores<extra></extra>",
         ))
         fig_dpi.update_layout(**PLOTLY_THEME, height=300)
-        st.plotly_chart(fig_dpi, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_dpi, width="stretch", config={"displayModeBar": False})
 
-    # ── eDPI ─────────────────────────────────────────────────────────────────
     with col2:
-        st.markdown('<div class="section-title">Distribución eDPI</div>', unsafe_allow_html=True)
-        edpi_clean = df_plot["edpi"].dropna()
-
-        fig_edpi = go.Figure(go.Histogram(
-            x=edpi_clean,
-            nbinsx=30,
+        st.markdown('<div class="section-title">eDPI más usados (Top 10)</div>', unsafe_allow_html=True)
+        edpi_data = (
+            df_plot["edpi"].dropna().astype(int)
+            .value_counts().head(10).sort_index().reset_index()
+        )
+        edpi_data.columns = ["eDPI", "Jugadores"]
+        fig_edpi = go.Figure(go.Bar(
+            x=edpi_data["eDPI"].astype(str),
+            y=edpi_data["Jugadores"],
             marker_color=ACCENT2,
             marker_line_width=0,
-            hovertemplate="eDPI %{x}<br>%{y} jugadores<extra></extra>",
+            hovertemplate="<b>eDPI %{x}</b><br>%{y} jugadores<extra></extra>",
         ))
         fig_edpi.update_layout(**PLOTLY_THEME, height=300)
-        st.plotly_chart(fig_edpi, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_edpi, width="stretch", config={"displayModeBar": False})
 
     col3, col4 = st.columns(2)
 
-    # ── Aspect Ratio ─────────────────────────────────────────────────────────
     with col3:
         st.markdown('<div class="section-title">Relaciones de aspecto</div>', unsafe_allow_html=True)
         ar_data = (
-            df_plot["aspect_ratio"]
-            .dropna()
-            .value_counts()
-            .head(8)
-            .reset_index()
+            df_plot["aspect_ratio"].dropna()
+            .value_counts().head(8).reset_index()
         )
         ar_data.columns = ["Aspect Ratio", "Jugadores"]
-
         fig_ar = go.Figure(go.Bar(
             x=ar_data["Jugadores"],
             y=ar_data["Aspect Ratio"],
@@ -475,22 +399,17 @@ with tab_stats:
             marker_line_width=0,
             hovertemplate="<b>%{y}</b><br>%{x} jugadores<extra></extra>",
         ))
-        fig_ar.update_layout(**PLOTLY_THEME, height=300,
-                             yaxis=dict(autorange="reversed", gridcolor="#1a2030"))
-        st.plotly_chart(fig_ar, use_container_width=True, config={"displayModeBar": False})
+        fig_ar.update_layout(**PLOTLY_THEME, height=300)
+        fig_ar.update_yaxes(autorange="reversed", gridcolor="#1a2030")
+        st.plotly_chart(fig_ar, width="stretch", config={"displayModeBar": False})
 
-    # ── Resoluciones ─────────────────────────────────────────────────────────
     with col4:
         st.markdown('<div class="section-title">Resoluciones más usadas</div>', unsafe_allow_html=True)
         res_data = (
-            df_plot["resolution"]
-            .dropna()
-            .value_counts()
-            .head(10)
-            .reset_index()
+            df_plot["resolution"].dropna()
+            .value_counts().head(10).reset_index()
         )
         res_data.columns = ["Resolución", "Jugadores"]
-
         fig_res = go.Figure(go.Bar(
             x=res_data["Jugadores"],
             y=res_data["Resolución"],
@@ -499,20 +418,16 @@ with tab_stats:
             marker_line_width=0,
             hovertemplate="<b>%{y}</b><br>%{x} jugadores<extra></extra>",
         ))
-        fig_res.update_layout(**PLOTLY_THEME, height=350,
-                              yaxis=dict(autorange="reversed", gridcolor="#1a2030"))
-        st.plotly_chart(fig_res, use_container_width=True, config={"displayModeBar": False})
+        fig_res.update_layout(**PLOTLY_THEME, height=350)
+        fig_res.update_yaxes(autorange="reversed", gridcolor="#1a2030")
+        st.plotly_chart(fig_res, width="stretch", config={"displayModeBar": False})
 
-    # ── Scaling Mode ─────────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Scaling mode</div>', unsafe_allow_html=True)
     scale_data = (
-        df_plot["scaling_mode"]
-        .dropna()
-        .value_counts()
-        .reset_index()
+        df_plot["scaling_mode"].dropna()
+        .value_counts().reset_index()
     )
     scale_data.columns = ["Scaling Mode", "Jugadores"]
-
     colors = [ACCENT, ACCENT2, "#ff6b6b", "#a78bfa", "#fb923c"]
     fig_scale = go.Figure(go.Pie(
         labels=scale_data["Scaling Mode"],
@@ -523,5 +438,5 @@ with tab_stats:
         textfont=dict(family="Barlow Condensed", size=13),
     ))
     fig_scale.update_layout(**PLOTLY_THEME, height=280,
-                             legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"))
-    st.plotly_chart(fig_scale, use_container_width=True, config={"displayModeBar": False})
+                            legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"))
+    st.plotly_chart(fig_scale, width="stretch", config={"displayModeBar": False})
